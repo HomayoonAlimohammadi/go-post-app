@@ -9,4 +9,4 @@ go:
 # the generated files inside this.
 
 run:
-	go run cmd/postapp/main.go
+	go run cmd/postapp/*.go

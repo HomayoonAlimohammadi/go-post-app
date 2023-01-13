@@ -28,9 +28,18 @@ message CreatePostRequest {
     string content = 3;
 }
 
+message LoginRequest {
+    string name = 1;
+}
+
+message LoginResponse {
+    string token = 1;
+}
+
 service PostApp {
     rpc CreatePost (CreatePostRequest) returns (google.protobuf.Empty) {}
     rpc GetPost (GetPostRequest) returns (Post) {}
     rpc GetPosts (google.protobuf.Empty) returns (GetPostsResponse) {}
     rpc GetPostsStream (google.protobuf.Empty) returns (stream Post) {}
+    rpc Login (LoginRequest) returns (LoginResponse) {}
 }

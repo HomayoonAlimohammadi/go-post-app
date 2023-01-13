@@ -27,6 +27,7 @@ type PostAppClient interface {
 	GetPost(ctx context.Context, in *GetPostRequest, opts ...grpc.CallOption) (*Post, error)
 	GetPosts(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetPostsResponse, error)
 	GetPostsStream(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (PostApp_GetPostsStreamClient, error)
+	Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error)
 }
 
 type postAppClient struct {
@@ -96,6 +97,15 @@ func (x *postAppGetPostsStreamClient) Recv() (*Post, error) {
 	return m, nil
 }
 
+func (c *postAppClient) Login(ctx context.Context, in *LoginRequest, opts ...grpc.CallOption) (*LoginResponse, error) {
+	out := new(LoginResponse)
+	err := c.cc.Invoke(ctx, "/postapp.PostApp/Login", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // PostAppServer is the server API for PostApp service.
 // All implementations must embed UnimplementedPostAppServer
 // for forward compatibility
@@ -104,6 +114,7 @@ type PostAppServer interface {
 	GetPost(context.Context, *GetPostRequest) (*Post, error)
 	GetPosts(context.Context, *empty.Empty) (*GetPostsResponse, error)
 	GetPostsStream(*empty.Empty, PostApp_GetPostsStreamServer) error
+	Login(context.Context, *LoginRequest) (*LoginResponse, error)
 	mustEmbedUnimplementedPostAppServer()
 }
 
@@ -122,6 +133,9 @@ func (UnimplementedPostAppServer) GetPosts(context.Context, *empty.Empty) (*GetP
 }
 func (UnimplementedPostAppServer) GetPostsStream(*empty.Empty, PostApp_GetPostsStreamServer) error {
 	return status.Errorf(codes.Unimplemented, "method GetPostsStream not implemented")
+}
+func (UnimplementedPostAppServer) Login(context.Context, *LoginRequest) (*LoginResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Login not implemented")
 }
 func (UnimplementedPostAppServer) mustEmbedUnimplementedPostAppServer() {}
 
@@ -211,6 +225,24 @@ func (x *postAppGetPostsStreamServer) Send(m *Post) error {
 	return x.ServerStream.SendMsg(m)
 }
 
+func _PostApp_Login_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(LoginRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(PostAppServer).Login(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/postapp.PostApp/Login",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(PostAppServer).Login(ctx, req.(*LoginRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // PostApp_ServiceDesc is the grpc.ServiceDesc for PostApp service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -229,6 +261,10 @@ var PostApp_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetPosts",
 			Handler:    _PostApp_GetPosts_Handler,
+		},
+		{
+			MethodName: "Login",
+			Handler:    _PostApp_Login_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

@@ -81,3 +81,7 @@ func (p *PostApp) CreatePost(ctx context.Context,
 
 	return &emptypb.Empty{}, nil
 }
+
+func (p *PostApp) Login(ctx context.Context, req *postapp.LoginRequest) (*postapp.LoginResponse, error) {
+
+}
