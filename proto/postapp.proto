@@ -18,20 +18,19 @@ message GetPostRequest {
     string token = 1;
 }
 
-message GetPostResponse {
-    Post post = 1;
-}
-
 message GetPostsResponse {
     repeated Post posts = 1;
 }
 
 message CreatePostRequest {
-    Post post = 1;
+    string title = 1;
+    string author = 2;
+    string content = 3;
 }
 
 service PostApp {
     rpc CreatePost (CreatePostRequest) returns (google.protobuf.Empty) {}
-    rpc GetPost (GetPostRequest) returns (GetPostResponse) {}
+    rpc GetPost (GetPostRequest) returns (Post) {}
     rpc GetPosts (google.protobuf.Empty) returns (GetPostsResponse) {}
+    rpc GetPostsStream (google.protobuf.Empty) returns (stream Post) {}
 }

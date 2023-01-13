@@ -24,8 +24,9 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type PostAppClient interface {
 	CreatePost(ctx context.Context, in *CreatePostRequest, opts ...grpc.CallOption) (*empty.Empty, error)
-	GetPost(ctx context.Context, in *GetPostRequest, opts ...grpc.CallOption) (*GetPostResponse, error)
+	GetPost(ctx context.Context, in *GetPostRequest, opts ...grpc.CallOption) (*Post, error)
 	GetPosts(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*GetPostsResponse, error)
+	GetPostsStream(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (PostApp_GetPostsStreamClient, error)
 }
 
 type postAppClient struct {
@@ -45,8 +46,8 @@ func (c *postAppClient) CreatePost(ctx context.Context, in *CreatePostRequest, o
 	return out, nil
 }
 
-func (c *postAppClient) GetPost(ctx context.Context, in *GetPostRequest, opts ...grpc.CallOption) (*GetPostResponse, error) {
-	out := new(GetPostResponse)
+func (c *postAppClient) GetPost(ctx context.Context, in *GetPostRequest, opts ...grpc.CallOption) (*Post, error) {
+	out := new(Post)
 	err := c.cc.Invoke(ctx, "/postapp.PostApp/GetPost", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -63,13 +64,46 @@ func (c *postAppClient) GetPosts(ctx context.Context, in *empty.Empty, opts ...g
 	return out, nil
 }
 
+func (c *postAppClient) GetPostsStream(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (PostApp_GetPostsStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &PostApp_ServiceDesc.Streams[0], "/postapp.PostApp/GetPostsStream", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &postAppGetPostsStreamClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type PostApp_GetPostsStreamClient interface {
+	Recv() (*Post, error)
+	grpc.ClientStream
+}
+
+type postAppGetPostsStreamClient struct {
+	grpc.ClientStream
+}
+
+func (x *postAppGetPostsStreamClient) Recv() (*Post, error) {
+	m := new(Post)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // PostAppServer is the server API for PostApp service.
 // All implementations must embed UnimplementedPostAppServer
 // for forward compatibility
 type PostAppServer interface {
 	CreatePost(context.Context, *CreatePostRequest) (*empty.Empty, error)
-	GetPost(context.Context, *GetPostRequest) (*GetPostResponse, error)
+	GetPost(context.Context, *GetPostRequest) (*Post, error)
 	GetPosts(context.Context, *empty.Empty) (*GetPostsResponse, error)
+	GetPostsStream(*empty.Empty, PostApp_GetPostsStreamServer) error
 	mustEmbedUnimplementedPostAppServer()
 }
 
@@ -80,11 +114,14 @@ type UnimplementedPostAppServer struct {
 func (UnimplementedPostAppServer) CreatePost(context.Context, *CreatePostRequest) (*empty.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreatePost not implemented")
 }
-func (UnimplementedPostAppServer) GetPost(context.Context, *GetPostRequest) (*GetPostResponse, error) {
+func (UnimplementedPostAppServer) GetPost(context.Context, *GetPostRequest) (*Post, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPost not implemented")
 }
 func (UnimplementedPostAppServer) GetPosts(context.Context, *empty.Empty) (*GetPostsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetPosts not implemented")
+}
+func (UnimplementedPostAppServer) GetPostsStream(*empty.Empty, PostApp_GetPostsStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetPostsStream not implemented")
 }
 func (UnimplementedPostAppServer) mustEmbedUnimplementedPostAppServer() {}
 
@@ -153,6 +190,27 @@ func _PostApp_GetPosts_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _PostApp_GetPostsStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(empty.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(PostAppServer).GetPostsStream(m, &postAppGetPostsStreamServer{stream})
+}
+
+type PostApp_GetPostsStreamServer interface {
+	Send(*Post) error
+	grpc.ServerStream
+}
+
+type postAppGetPostsStreamServer struct {
+	grpc.ServerStream
+}
+
+func (x *postAppGetPostsStreamServer) Send(m *Post) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 // PostApp_ServiceDesc is the grpc.ServiceDesc for PostApp service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -173,6 +231,12 @@ var PostApp_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _PostApp_GetPosts_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "GetPostsStream",
+			Handler:       _PostApp_GetPostsStream_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "postapp.proto",
 }
